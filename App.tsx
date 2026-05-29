@@ -1,13 +1,15 @@
 import "./global.css";
 import { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, SafeAreaView, Alert } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, SafeAreaView, Alert, Image } from "react-native";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "./firebase";
 import * as FileSystem from 'expo-file-system/legacy';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { buscarEmpleadoPorDni, registrarFichajeLocal, LocalEmpleado } from "./database";
 import { triggerSync, startAutoSync } from "./syncService";
+
+const LOGO_IMG = require("./assets/logo-icon.png");
 
 type AppState = "SETUP" | "RESTING" | "SELECT_DIRECTION" | "DNI_INPUT" | "SCANNING" | "SUCCESS" | "ERROR";
 
@@ -239,6 +241,11 @@ export default function App() {
   const renderSetupScreen = () => (
     <View className="flex-1 bg-neutral-950 items-center justify-center p-8">
       <View className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-8 rounded-3xl shadow-2xl">
+        <Image 
+          source={LOGO_IMG} 
+          style={{ width: 64, height: 64, alignSelf: 'center', marginBottom: 16, borderRadius: 16 }}
+          resizeMode="contain" 
+        />
         <Text className="text-red-500 font-bold text-3xl tracking-widest text-center mb-1">EmergenciAPP</Text>
         <Text className="text-white text-lg font-light text-center tracking-wide opacity-80 mb-8">Vincular Terminal de Asistencia</Text>
         
@@ -329,6 +336,11 @@ export default function App() {
         onPress={() => setAppState("SELECT_DIRECTION")} 
         activeOpacity={0.9}
       >
+        <Image 
+          source={LOGO_IMG} 
+          style={{ width: 80, height: 80, marginBottom: 20, borderRadius: 20 }}
+          resizeMode="contain" 
+        />
         <Text className="text-red-500 font-bold text-4xl md:text-6xl tracking-wider text-center mb-1">EmergenciAPP</Text>
         <Text className="text-white text-xs md:text-lg tracking-wider opacity-60 text-center mb-16">CONTROL DE ASISTENCIA</Text>
         
