@@ -25,6 +25,15 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permitir a EmergenciAPP acceder a la cámara para el control de asistencia."
+        }
+      ]
+    ]
   }
 }

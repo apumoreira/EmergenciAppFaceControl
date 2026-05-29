@@ -1,55 +1,77 @@
-# EmergenciAPP - Control de Acceso Facial
+# Implementación Técnica del Kiosco de Control de Asistencia (Offline-First)
 
-Este documento detalla el plan de implementación para la nueva herramienta de control de ingreso y salida de personal mediante reconocimiento facial.
+Este documento detalla el plan de desarrollo para dejar lista y funcional la **Aplicación Kiosco (React Native / Expo)** enfocada en tablets/celulares, incorporando un motor local transaccional, captura de evidencia física y la **Opción C de Seguridad** (autenticación única por dispositivo).
 
-## Arquitectura y Tecnologías Propuestas
+Se ha **simplificado el diseño** eliminando el módulo de enrolamiento local: los empleados se cargan únicamente en el panel web de EmergenciAPP (**Personal Base**), y las tablets los descargan de forma automática.
 
-### Arquitectura Seleccionada: Aplicación Nativa con Expo / React Native
-Basado en tus respuestas, construiremos una aplicación nativa enfocada en **Android (Celular o Tablet)**:
-- **Dispositivo**: Celular o Tablet Android.
-- **Sensor de Proximidad**: Utilizaremos librerías nativas (`react-native-proximity` u opciones similares) integradas con Expo Dev Client para detectar presencia y despertar la pantalla o salir del modo reposo.
-- **Reconocimiento Facial**: Integraremos `react-native-vision-camera` junto con procesadores de frames para detección facial en tiempo real (o `expo-camera` con `expo-face-detector` si resulta más estable para este caso de uso offline).
-- **Offline-first**: Implementaremos almacenamiento local robusto (ej. `AsyncStorage` o base de datos local SQLite/WatermelonDB) para los descriptores faciales y datos del personal, con sincronización asíncrona hacia Firebase Firestore.
-- **Enrolamiento (NUEVO)**: Desarrollaremos un módulo oculto o protegido por PIN dentro de la misma app para que un administrador pueda dar de alta a los empleados, tomarles la fotografía inicial y extraer los descriptores biométricos que se guardarán en la base de datos local.
+---
 
-> [!TIP]
-> Si el dispositivo que se va a utilizar es una PC o una tablet genérica puesta en un soporte, la Opción 1 (PWA) es mucho más rápida de desarrollar y fácil de mantener junto con el ecosistema web actual de EmergenciAPP.
+## User Review Required
 
 > [!IMPORTANT]
-> ## User Review Required
-> 
-> Por favor revisa la arquitectura propuesta y decide si prefieres que avancemos con una **PWA** (aplicación web instalable) o una **Aplicación Nativa** (React Native).
+> ### Arquitectura de Base de Datos y Fichajes
+> - **Almacenamiento Local**: Utilizaremos `expo-sqlite` para una base de datos local robusta y transaccional, evitando las limitaciones críticas de almacenamiento y rendimiento de `AsyncStorage`.
+> - **Evidencia Fotográfica**: Para evitar sobrecargar la base de datos local y Firebase, las fotos de evidencia se guardarán como archivos físicos JPG en la tablet (`expo-file-system`) y en la base de datos SQLite solo guardaremos la **ruta local del archivo** (`photo_path`). Al sincronizarse, la foto se convertirá a Base64 para subirse a Firestore, y se eliminará el archivo local viejo para mantener limpio el disco de la tablet.
+> - **Flujo de Entrada/Salida**: Añadiremos un selector inicial para que el empleado defina explícitamente si está fichando **Entrada** o **Salida**, garantizando precisión en el reporte.
 
-> [!WARNING]
-> ## Open Questions
-> 
-> 1. **Dispositivo Físico**: ¿En qué dispositivo físico planean instalar esto? (Ej. Tablet Android, iPad, Computadora con webcam conectada, Kiosko dedicado).
-> 2. **Sensor de Proximidad**: Si elegimos PWA (web), ¿estás de acuerdo en que la cámara analice constantemente a bajos recursos si hay alguien al frente para "despertar" la interfaz, o planean integrar un sensor físico que mande una señal (como un click)?
-> 3. **Base de Datos Inicial**: Para la validación facial, ¿cómo planean enrolar (registrar la cara) a los empleados por primera vez? ¿Se hará en esta misma app o ya tienen fotos cargadas en Firebase?
+> [!CAUTION]
+> ### Seguridad Blindada y Sincronización (Opción C)
+> - **Autenticación Única por Tablet**: Al instalar la app en cada base física, el administrador iniciará sesión *una sola vez* con una cuenta dedicada exclusiva de esa base (ej. `kiosco.central@emergenciapp.com`). La sesión quedará abierta de forma permanente y segura en el dispositivo. No hay contraseñas grabadas en el código fuente.
+> - **Reglas de Firestore y deviceId**: Todos los logs que la tablet suba a Firebase Firestore (`face_control_logs`) llevarán en el campo `deviceId` su ID de usuario autenticado (`request.auth.uid`). Las reglas de seguridad de Firestore exigirán que `request.resource.data.deviceId == request.auth.uid`, impidiendo que una tablet comprometida suplante a otra o manipule registros ajenos.
 
-## Fases de Implementación
+---
 
-### Fase 1: Inicialización del Repositorio y Entorno
-- Crear repositorio Git en la carpeta actual (`EmergenciAPPFaceControl`).
-- Inicializar el proyecto con el framework elegido (Next.js/React PWA o Expo).
-- Configurar CSS Vanilla para la interfaz minimalista.
-- Configurar Firebase.
+## Proposed Changes
 
-### Fase 2: Interfaz Minimalista
-- Pantalla de reposo (oscura, con el logo de EmergenciaApp y reloj).
-- Pantalla de detección ("Acérquese a la cámara").
-- Pantalla de éxito ("Bienvenido [Nombre], Ingreso registrado").
+### [Kiosko App Componentes]
 
-### Fase 3: Motor Offline-First y Firebase
-- Configurar base de datos local (IndexedDB o SQLite).
-- Lógica de sincronización bi-direccional con Firebase Firestore.
+---
 
-### Fase 4: Integración del Reconocimiento Facial
-- Cargar modelos de IA localmente.
-- Escanear rostro -> Comparar con DB local -> Generar registro de entrada/salida -> Guardar localmente -> Subir a Firebase si hay internet.
+#### [MODIFY] [App.tsx](file:///c:/Proyectos%20Web/EmergenciAPPFaceControl/App.tsx)
+- **Pantalla de Configuración Inicial (Login)**: Al arrancar la app por primera vez (o si no hay sesión activa), mostrar una pantalla de Login exclusiva para el administrador para ingresar las credenciales del Kiosko de esa base.
+- **Selector de Fichaje**: Incorporar la pantalla inicial con dos botones gigantes: **"Fichar Entrada"** (Verde) y **"Fichar Salida"** (Rojo).
+- **Flujo de Fichaje Simplificado (DNI + Foto)**: Al ingresar el DNI, validar contra el SQLite local. Si existe, activar la cámara del dispositivo, tomar la foto de evidencia física en tiempo real, guardar el log y mostrar pantalla de éxito.
+- **Eliminado**: Se quita por completo el módulo de enrolamiento oculto (ya no es necesario tomar fotos de alta ni crear formularios en la tablet).
+
+#### [NEW] [database.ts](file:///c:/Proyectos%20Web/EmergenciAPPFaceControl/database.ts)
+- Inicializar la base de datos local SQLite (`emergenciapp_kiosk.db`).
+- Crear tablas estructuradas:
+  - `empleados`: `id` (PK), `nombre`, `apellido`, `dni` (UNIQUE).
+  - `fichajes`: `id` (PK), `empleado_id`, `empleado_nombre`, `empleado_dni`, `timestamp`, `tipo` (IN/OUT), `foto_path`, `sincronizado` (0 o 1).
+- Proveer métodos para:
+  - Insertar/actualizar empleados descargados.
+  - Insertar un fichaje local (offline) registrando la ruta de la foto física en disco.
+  - Obtener fichajes pendientes de sincronización (`sincronizado = 0`).
+  - Marcar fichajes como sincronizados y limpiar las imágenes viejas correspondientes del almacenamiento local.
+
+#### [NEW] [syncService.ts](file:///c:/Proyectos%20Web/EmergenciAPPFaceControl/syncService.ts)
+- Configurar la conexión con Firebase Firestore utilizando la sesión del Kiosco autenticado.
+- **Subida (Upload)**:
+  - Obtener fichajes con `sincronizado = 0` desde SQLite.
+  - Subir cada fichaje a `/face_control_logs` inyectando el `uid` actual de la sesión en el campo `deviceId`. Si tiene foto local, convertirla temporalmente a Base64 para subirla en el payload.
+  - Al subir con éxito, actualizar `sincronizado = 1` y borrar el archivo JPG del dispositivo.
+- **Descarga (Download - NUEVO ENFOQUE)**:
+  - Consultar la colección `/usuarios_base` (Personal Base) en Firebase.
+  - Descargar la lista de empleados activos (`id`, `nombre`, `apellido`, `dni`).
+  - Guardar/actualizar los perfiles descargados en la tabla SQLite `empleados`.
+- Integrar un timer periódico en segundo plano que ejecute este ciclo de sincronización automáticamente.
+
+---
 
 ## Verification Plan
 
-### Manual Verification
-- Apagar el WiFi del dispositivo, realizar un escaneo facial exitoso, y comprobar que el registro se guardó localmente. Al reconectar el WiFi, verificar que el registro aparezca en Firebase.
-- Comprobar la fluidez del reconocimiento (FPS) y que la pantalla vuelva al estado de reposo tras la inactividad.
+### Automated & Manual Tests
+1. **Flujo de Configuración y Login Único**:
+   - Abrir la app limpia y verificar que solicita obligatoriamente el Login de Dispositivo.
+   - Ingresar credenciales válidas y comprobar que inicia sesión y carga la pantalla de reposo con reloj. Reiniciar la app y verificar que la sesión persiste.
+2. **Descarga Automática de Personal Base**:
+   - Agregar o modificar un empleado en el panel web de "Personal Base" en EmergenciAPP.
+   - Ejecutar la sincronización en la tablet y comprobar en los logs de SQLite que el empleado se descargó y se puede encontrar por su DNI de forma local.
+3. **Fichaje Offline con Foto de Evidencia**:
+   - Desconectar el WiFi de la tablet.
+   - Fichar Entrada ingresando el DNI del empleado.
+   - Verificar que la tablet valida su nombre localmente (*"Bienvenido, Perez, Juan"*), toma la foto de la cámara frontal, la guarda físicamente en el storage de la tablet (`expo-file-system`) y almacena el registro en SQLite con `sincronizado = 0`.
+4. **Sincronización y Validación de Reglas**:
+   - Conectar el WiFi y activar sincronización.
+   - Verificar en Firebase Firestore que el log se creó en `/face_control_logs` con la foto en Base64 y que el campo `deviceId` coincide estrictamente con el `uid` del Kiosco logueado.
+   - Comprobar que el archivo JPG local fue eliminado de la tablet tras la subida exitosa.

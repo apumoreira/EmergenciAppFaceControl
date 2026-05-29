@@ -1,26 +1,23 @@
 # Tareas de Implementación - EmergenciAPPFaceControl
 
-- [x] 1. Configuración Inicial
-  - [x] Inicializar repositorio Git local.
-  - [x] Crear proyecto base en React Native usando Expo (`npx create-expo-app@latest`).
-  - [x] Configurar TypeScript, TailwindCSS (NativeWind) y estructura de carpetas.
-  
-- [x] 2. Diseño Minimalista (UI/UX)
-  - [x] Pantalla de Reposo (Reloj y Logo).
-  - [x] Pantalla de Escaneo (Cámara activa).
-  - [x] Mensajes de confirmación ("Ingreso registrado").
-  - [x] Módulo oculto de Enrolamiento (Registro de empleados y foto).
+- [x] 1. Configuración de Base de Datos y Almacenamiento Local (SQLite)
+  - [x] Instalar dependencias necesarias (`expo-sqlite`, `expo-file-system`).
+  - [x] Crear archivo `database.ts` para inicializar base de datos SQLite y crear tablas `empleados` y `fichajes`.
+  - [x] Implementar métodos CRUD locales (guardar empleados descargados, insertar fichaje local, leer logs sin sincronizar).
 
-- [ ] 3. Base de Datos Local y Offline-First
-  - [ ] Integrar `AsyncStorage` o SQLite para la base de empleados locales.
-  - [ ] Lógica para guardar registros de entrada/salida localmente.
-  - [ ] Sincronización en segundo plano con Firebase Firestore al detectar conexión.
+- [x] 2. Diseño del Selector de Fichaje y Flujos en UI
+  - [x] Añadir pantalla inicial de Selección de Dirección (Fichar Entrada / Fichar Salida).
+  - [x] Integrar teclado numérico/búsqueda para ingreso de DNI.
+  - [x] Simular/Conectar la cámara para toma de foto de evidencia en tiempo real (guardada en disco local).
+  - [x] Ajustar pantallas de Éxito y Error según validaciones locales de SQLite.
 
-- [ ] 4. Reconocimiento Facial y Proximidad
-  - [ ] Instalar librerías nativas (`react-native-vision-camera`, o expo-face-detector).
-  - [ ] Implementar la detección del rostro en tiempo real y validación contra la DB local.
-  - [ ] Integrar sensor de proximidad (`react-native-proximity` o similar) para encender/apagar cámara.
+- [x] 3. Servicio de Autenticación y Sincronización (Firebase Sync)
+  - [x] Implementar pantalla de configuración/login inicial para vincular la tablet a una cuenta de base (Opción C).
+  - [x] Crear `syncService.ts` para la descarga asíncrona de empleados activos desde `usuarios_base` a SQLite.
+  - [x] Implementar la subida asíncrona de fichajes offline a `/face_control_logs` (convirtiendo fotos a Base64 y limpiando JPGs locales).
+  - [x] Configurar timer en segundo plano para el ciclo automático de sincronización.
 
-- [ ] 5. Módulo de Enrolamiento (Admin)
-  - [ ] Formulario básico (Nombre, DNI/ID).
-  - [ ] Captura de rostro y guardado de "embeddings" (descriptores faciales).
+- [x] 4. Verificación y Pruebas
+  - [x] Probar flujo completo de login único en Kiosco.
+  - [x] Probar descarga y actualización local de empleados tras cambios en la web.
+  - [x] Probar fichaje offline (sin internet) con evidencia guardada y verificar posterior subida y limpieza de archivos al recuperar red.
