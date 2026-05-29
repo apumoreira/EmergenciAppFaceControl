@@ -1,7 +1,7 @@
 import "./global.css";
 import { useState, useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
-import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, SafeAreaView } from "react-native";
+import { View, Text, TouchableOpacity, TextInput, ActivityIndicator, SafeAreaView, Alert } from "react-native";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "./firebase";
 import * as FileSystem from 'expo-file-system/legacy';
@@ -292,14 +292,19 @@ export default function App() {
     <View className="flex-1 bg-black items-center justify-center p-8 relative">
       {/* Botón de desvinculación superior derecho oculto */}
       <TouchableOpacity 
-        className="absolute top-12 right-6 p-4" 
+        className="absolute top-12 right-6 p-4 z-30" 
         onPress={() => {
-          if (confirm("¿Desvincular esta terminal del sistema? Requerirá login de nuevo.")) {
-            handleUnlink();
-          }
+          Alert.alert(
+            "Desvincular Terminal",
+            "¿Desvincular esta terminal del sistema? Requerirá iniciar sesión de nuevo.",
+            [
+              { text: "Cancelar", style: "cancel" },
+              { text: "Desvincular", style: "destructive", onPress: handleUnlink }
+            ]
+          );
         }}
       >
-        <Text className="text-neutral-900 text-xs">⚙️</Text>
+        <Text className="text-neutral-400 text-xl">⚙️</Text>
       </TouchableOpacity>
 
       {/* Indicador de Sincronización Superior Izquierdo */}
@@ -323,18 +328,18 @@ export default function App() {
         onPress={() => setAppState("SELECT_DIRECTION")} 
         activeOpacity={0.9}
       >
-        <Text className="text-red-500 font-bold text-6xl tracking-widest mb-1">EmergenciAPP</Text>
-        <Text className="text-white text-xl tracking-widest opacity-60 mb-16">CONTROL DE ASISTENCIA</Text>
+        <Text className="text-red-500 font-bold text-4xl md:text-6xl tracking-wider text-center mb-1">EmergenciAPP</Text>
+        <Text className="text-white text-xs md:text-lg tracking-wider opacity-60 text-center mb-16">CONTROL DE ASISTENCIA</Text>
         
-        <Text className="text-white text-9xl font-light mb-8">
+        <Text className="text-white text-7xl md:text-9xl font-light text-center mb-8">
           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </Text>
-        <Text className="text-neutral-400 text-lg uppercase tracking-widest mb-16">
+        <Text className="text-neutral-400 text-sm md:text-base uppercase tracking-widest text-center mb-16">
           {currentTime.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
         </Text>
 
         <View className="bg-neutral-900/40 border border-neutral-800 px-6 py-3 rounded-full">
-          <Text className="text-neutral-400 text-sm uppercase tracking-widest animate-pulse">Toque la pantalla para fichar</Text>
+          <Text className="text-neutral-400 text-xs uppercase tracking-widest animate-pulse">Toque la pantalla para fichar</Text>
         </View>
       </TouchableOpacity>
     </View>
