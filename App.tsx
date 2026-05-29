@@ -39,6 +39,12 @@ export default function App() {
   const [syncingStatus, setSyncingStatus] = useState<"idle" | "syncing" | "success" | "error">("idle");
   const [syncMessage, setSyncMessage] = useState("");
 
+  // Estado para desvinculación segura con contraseña
+  const [showUnlinkModal, setShowUnlinkModal] = useState(false);
+  const [unlinkPassword, setUnlinkPassword] = useState("");
+  const [unlinkError, setUnlinkError] = useState("");
+  const [unlinkLoading, setUnlinkLoading] = useState(false);
+
   // Escuchar estado de sesión Firebase Auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -294,14 +300,9 @@ export default function App() {
       <TouchableOpacity 
         className="absolute top-12 right-6 p-4 z-30" 
         onPress={() => {
-          Alert.alert(
-            "Desvincular Terminal",
-            "¿Desvincular esta terminal del sistema? Requerirá iniciar sesión de nuevo.",
-            [
-              { text: "Cancelar", style: "cancel" },
-              { text: "Desvincular", style: "destructive", onPress: handleUnlink }
-            ]
-          );
+          setUnlinkPassword("");
+          setUnlinkError("");
+          setShowUnlinkModal(true);
         }}
       >
         <Text className="text-neutral-400 text-xl">⚙️</Text>
@@ -518,6 +519,94 @@ export default function App() {
     </View>
   );
 
+  // Confirmar desvinculación validando la contraseña contra Firebase Auth
+  const handleUnlinkConfirm = async () => {
+    if (!unlinkPassword) {
+      setUnlinkError("Por favor, ingrese la contraseña.");
+      return;
+    }
+    setUnlinkLoading(true);
+    setUnlinkError("");
+    try {
+      const emailAddress = auth.currentUser?.email;
+      if (emailAddress) {
+        // Intentar autenticar de nuevo para validar la contraseña de forma segura
+        await signInWithEmailAndPassword(auth, emailAddress, unlinkPassword);
+        // Si tiene éxito, la contraseña es correcta! Procedemos a desvincular
+        await signOut(auth);
+        setUnlinkPassword("");
+        setShowUnlinkModal(false);
+        setAppState("SETUP");
+      } else {
+        throw new Error("No hay terminal vinculada actualmente.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setUnlinkError("Contraseña incorrecta de administrador.");
+    } finally {
+      setUnlinkLoading(false);
+    }
+  };
+
+  // Render del Modal de seguridad para desvinculación
+  const renderUnlinkModal = () => (
+    <View className="absolute inset-0 bg-black/85 items-center justify-center p-6 z-50">
+      <View className="w-full max-w-md bg-neutral-900 border border-neutral-800 p-8 rounded-3xl shadow-2xl">
+        <Text className="text-red-500 font-bold text-2xl text-center mb-2">Desvincular Terminal</Text>
+        <Text className="text-neutral-400 text-sm text-center mb-6">
+          Esta acción requiere privilegios. Ingrese la contraseña de seguridad de este Kiosco para proceder.
+        </Text>
+
+        {unlinkError ? (
+          <View className="bg-red-950/40 border border-red-800/60 p-3 rounded-lg mb-4">
+            <Text className="text-red-400 text-xs text-center">{unlinkError}</Text>
+          </View>
+        ) : null}
+
+        <View className="space-y-4">
+          <View>
+            <Text className="text-neutral-400 text-xs uppercase tracking-wider mb-2 font-medium">Contraseña de Administrador</Text>
+            <TextInput
+              className="bg-neutral-800 text-white px-4 h-12 rounded-xl border border-neutral-700 focus:border-red-500"
+              placeholder="••••••••••••••"
+              placeholderTextColor="#555"
+              secureTextEntry
+              value={unlinkPassword}
+              onChangeText={setUnlinkPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+
+          <View className="flex-row space-x-4 mt-6 justify-between">
+            <TouchableOpacity 
+              className="bg-neutral-850 border border-neutral-800 h-12 rounded-xl items-center justify-center flex-1 mr-2"
+              onPress={() => {
+                setShowUnlinkModal(false);
+                setUnlinkPassword("");
+                setUnlinkError("");
+              }}
+              disabled={unlinkLoading}
+            >
+              <Text className="text-neutral-400 font-bold text-sm">CANCELAR</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              className="bg-red-600 h-12 rounded-xl items-center justify-center flex-1 ml-2 flex-row"
+              onPress={handleUnlinkConfirm}
+              disabled={unlinkLoading}
+            >
+              {unlinkLoading ? (
+                <ActivityIndicator color="white" size="small" className="mr-2" />
+              ) : null}
+              <Text className="text-white font-bold text-sm">DESVINCULAR</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+
   const renderScreen = () => {
     switch (appState) {
       case "SETUP": return renderSetupScreen();
@@ -535,6 +624,7 @@ export default function App() {
     <>
       <StatusBar style="light" hidden={appState !== "SETUP"} />
       {renderScreen()}
+      {showUnlinkModal && renderUnlinkModal()}
     </>
   );
 }
